@@ -1,1 +1,1 @@
-# creditcard_sms_parser
+# Korea Credit Card SMS Parser Using GO
