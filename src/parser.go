@@ -5,43 +5,57 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 )
 
+type Vendor string
+const (
+	SamsungCheck = Vendor("삼성체크")
+	Samsung = Vendor("삼성")
+	Shinhan = Vendor("신한")
+)
+var vendorArray = [...]Vendor{SamsungCheck, Samsung, Shinhan}
+
+type Approval string
+const (
+	Approve = Approval("승인")
+	Cancel = Approval("취소")
+)
+var approvalArray = [...]Approval{Approve, Cancel}
+
 type PaymentInfo struct {
-	vendor       string
+	vendor       Vendor
 	last4digit   string
-	kind         string
+	approval     Approval
 	price        int
 	installments int
-	date         string
-	time         string
+	time         time.Time
 	shop         string
 	cumulative   int
 }
 
 func (p PaymentInfo) ToString() string {
-	return fmt.Sprintf("[Vendor]%s, [Number]%s, [Kind]%s, [Price]%d, [Installments]%d, [Date]%s, [Time]%s, [Shop]%s, [Cumulative]%d",
-		p.vendor, p.last4digit, p.kind, p.price, p.installments, p.date, p.time, p.shop, p.cumulative)
+	return fmt.Sprintf("[Vendor]%s, [Number]%s, [Approval]%s, [Price]%d, [Installments]%d, [Time]%s, [Shop]%s, [Cumulative]%d",
+		p.vendor, p.last4digit, p.approval, p.price, p.installments, p.time.Format(time.RFC822), p.shop, p.cumulative)
 }
 
 func Parse(sms string) PaymentInfo {
+	sms = strings.ReplaceAll(sms, "\n", " ")
 	return PaymentInfo{
 		parseVendor(sms),
 		parseLast4Digit(sms),
-		parseKind(sms),
+		parseApproval(sms),
 		parsePrice(sms),
 		parseInstallments(sms),
-		parseDate(sms),
-		parseTime(sms),
+		parseTimestamp(sms),
 		parseShop(sms),
 		parseCumulative(sms)}
 }
 
-func parseVendor(sms string) string {
-	var vendorArray = [...]string{`삼성체크`, `삼성`, `신한`}
-	for _, s := range vendorArray {
-		if strings.Contains(sms, s) {
-			return s
+func parseVendor(sms string) Vendor{
+	for _, v := range vendorArray {
+		if strings.Contains(sms, string(v)) {
+			return v
 		}
 	}
 	panic("Not support vendor")
@@ -52,12 +66,11 @@ func parseLast4Digit(sms string) string {
 	return re.FindString(sms)
 }
 
-func parseKind(sms string) string {
-	switch {
-	case strings.Contains(sms, "승인"):
-		return "승인"
-	case strings.Contains(sms, "취소"):
-		return "취소"
+func parseApproval(sms string) Approval {
+	for _, t := range approvalArray {
+		if strings.Contains(sms, string(t)) {
+			return t
+		}
 	}
 	panic("Not support kind")
 }
@@ -97,24 +110,25 @@ func parseInstallments(str string) int {
 	return p
 }
 
-func parseDate(sms string) string {
-	re := regexp.MustCompile(`\d{2}/\d{2}`)
-	return re.FindString(sms)
-}
-
-func parseTime(sms string) string {
-	re := regexp.MustCompile(`\d{2}:\d{2}`)
-	return re.FindString(sms)
+func parseTimestamp(sms string) time.Time {
+	dateString := regexp.MustCompile(`\d{2}/\d{2}`).FindString(sms)
+	timeString := regexp.MustCompile(`\d{2}:\d{2}`).FindString(sms)
+	currentTime := fmt.Sprintf("%d-%sT%s:00+09:00", time.Now().Local().Year(), strings.ReplaceAll(dateString, "/", "-"), timeString)
+	t, e := time.Parse(time.RFC3339, currentTime)
+	if e != nil {
+		panic("parse time error")
+	}
+	return t
 }
 
 func parseShop(sms string) string {
 	re := regexp.MustCompile(`(:\d{2}[ |\n])(.+)`)
 	sms = re.FindString(sms)
 	size := len(sms)
-	if strings.Contains(sms, " 누적") {
-		size = strings.Index(sms, " 누적")
+	if strings.Contains(sms, "누적") {
+		size = strings.Index(sms, "누적")
 	}
-	return sms[4:size]
+	return strings.TrimSpace(sms[4:size])
 }
 
 func parseCumulative(sms string) int {
