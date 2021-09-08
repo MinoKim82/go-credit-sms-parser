@@ -1,4 +1,4 @@
-package creditmsgparser
+package creditsmsparser
 
 import (
 	"fmt"
