@@ -22,6 +22,12 @@ func TestParser(t *testing.T) {
 	sms = "[Web발신]\n신한카드(5688)취소 홍*동 150,000원(일시불)08/07 14:47 망향주유소 누적994,030원"
 	pInfo = creditsmsparser.Parse(sms)
 	log.Print(pInfo.ToString())
+	sms = "[Web발신]\n롯데0*8* 승인\n홍*동\n31,060원 일시불\n\n07/06 09:16\n메리츠화재해상보험\n누적268,721원"
+	pInfo = creditsmsparser.Parse(sms)
+	log.Print(pInfo.ToString())
+	sms="[Web발신]\n현대카드 M 승인\n김*호\n\n34,000원 일시불\n11/26 12:38\n메이비\n누적222,950원"
+	pInfo = creditsmsparser.Parse(sms)
+	log.Print(pInfo.ToString())
 	// sms = "[Web발신]\n[삼성카드]0163\n자동결제 08/23접수\n한화손해보험(주)\n127,860원"
 	// pInfo = parser.Parse(sms)
 	// log.Print(pInfo.ToString())

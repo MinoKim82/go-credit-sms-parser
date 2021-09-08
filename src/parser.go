@@ -8,14 +8,6 @@ import (
 	"time"
 )
 
-type Vendor string
-const (
-	SamsungCheck = Vendor("삼성체크")
-	Samsung = Vendor("삼성")
-	Shinhan = Vendor("신한")
-)
-var vendorArray = [...]Vendor{SamsungCheck, Samsung, Shinhan}
-
 type Approval string
 const (
 	Approve = Approval("승인")
@@ -24,8 +16,7 @@ const (
 var approvalArray = [...]Approval{Approve, Cancel}
 
 type PaymentInfo struct {
-	vendor       Vendor
-	last4digit   string
+	id	string
 	approval     Approval
 	price        int
 	installments int
@@ -35,15 +26,14 @@ type PaymentInfo struct {
 }
 
 func (p PaymentInfo) ToString() string {
-	return fmt.Sprintf("[Vendor]%s, [Number]%s, [Approval]%s, [Price]%d, [Installments]%d, [Time]%s, [Shop]%s, [Cumulative]%d",
-		p.vendor, p.last4digit, p.approval, p.price, p.installments, p.time.Format(time.RFC822), p.shop, p.cumulative)
+	return fmt.Sprintf("[Id]%s, [Approval]%s, [Price]%d, [Installments]%d, [Time]%s, [Shop]%s, [Cumulative]%d",
+		p.id, p.approval, p.price, p.installments, p.time.Format(time.RFC822), p.shop, p.cumulative)
 }
 
 func Parse(sms string) PaymentInfo {
 	sms = strings.ReplaceAll(sms, "\n", " ")
 	return PaymentInfo{
-		parseVendor(sms),
-		parseLast4Digit(sms),
+		parseIdentifier(sms),
 		parseApproval(sms),
 		parsePrice(sms),
 		parseInstallments(sms),
@@ -52,18 +42,10 @@ func Parse(sms string) PaymentInfo {
 		parseCumulative(sms)}
 }
 
-func parseVendor(sms string) Vendor{
-	for _, v := range vendorArray {
-		if strings.Contains(sms, string(v)) {
-			return v
-		}
-	}
-	panic("Not support vendor")
-}
+func parseIdentifier(sms string) string {
+	return regexp.MustCompile(`\[Web발신].(.*?)\s*(승인|취소)`).FindStringSubmatch(sms)[1]
 
-func parseLast4Digit(sms string) string {
-	re := regexp.MustCompile(`(?:\d{4})`)
-	return re.FindString(sms)
+
 }
 
 func parseApproval(sms string) Approval {
