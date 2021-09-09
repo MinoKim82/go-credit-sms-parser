@@ -16,7 +16,7 @@ const (
 var approvalArray = [...]Approval{Approve, Cancel}
 
 type PaymentInfo struct {
-	id	string
+	id			 string
 	approval     Approval
 	price        int
 	installments int
@@ -44,8 +44,6 @@ func Parse(sms string) PaymentInfo {
 
 func parseIdentifier(sms string) string {
 	return regexp.MustCompile(`\[Web발신].(.*?)\s*(승인|취소)`).FindStringSubmatch(sms)[1]
-
-
 }
 
 func parseApproval(sms string) Approval {
@@ -82,19 +80,24 @@ func parseInstallments(str string) int {
 	if !strings.Contains(str, "개월") {
 		return 1
 	}
-	re := regexp.MustCompile(`\d*개월`)
-	str = re.FindString(str)
+	str = regexp.MustCompile(`\d*개월`).FindString(str)
 	str = strings.Replace(str, `개월`, ``, 1)
 	p, e := strconv.Atoi(str)
 	if e != nil {
-		panic(e)
+		panic("Can not parse installments" + e.Error())
 	}
 	return p
 }
 
 func parseTimestamp(sms string) time.Time {
 	dateString := regexp.MustCompile(`\d{2}/\d{2}`).FindString(sms)
+	if dateString == "" {
+		panic("Can not parse date : " + sms)
+	}
 	timeString := regexp.MustCompile(`\d{2}:\d{2}`).FindString(sms)
+	if timeString == "" {
+		panic("Can not parse time : " + sms)	
+	}		
 	currentTime := fmt.Sprintf("%d-%sT%s:00+09:00", time.Now().Local().Year(), strings.ReplaceAll(dateString, "/", "-"), timeString)
 	t, e := time.Parse(time.RFC3339, currentTime)
 	if e != nil {
@@ -104,13 +107,16 @@ func parseTimestamp(sms string) time.Time {
 }
 
 func parseShop(sms string) string {
-	re := regexp.MustCompile(`(:\d{2}[ |\n])(.+)`)
-	sms = re.FindString(sms)
-	size := len(sms)
-	if strings.Contains(sms, "누적") {
-		size = strings.Index(sms, "누적")
+	shopstr := regexp.MustCompile(`(:\d{2}[ |\n])(.+)`).FindString(sms)
+	size := len(shopstr)
+	if strings.Contains(shopstr, "누적") {
+		size = strings.Index(shopstr, "누적")
 	}
-	return strings.TrimSpace(sms[4:size])
+	shop:= strings.TrimSpace(shopstr[4:size])
+	if shop == "" {
+		panic("Can not parse shop : " + sms)
+	}
+	return shop
 }
 
 func parseCumulative(sms string) int {
