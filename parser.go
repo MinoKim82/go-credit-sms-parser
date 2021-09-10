@@ -8,26 +8,28 @@ import (
 	"time"
 )
 
-type Approval string
+type ApproveType string
+
 const (
-	Approve = Approval("승인")
-	Cancel = Approval("취소")
+	Approve = ApproveType("승인")
+	Cancel  = ApproveType("취소")
 )
-var approvalArray = [...]Approval{Approve, Cancel}
+
+var approvalArray = [...]ApproveType{Approve, Cancel}
 
 type PaymentInfo struct {
-	id			 string
-	approval     Approval
-	price        int
-	installments int
-	time         time.Time
-	shop         string
-	cumulative   int
+	Id           string
+	Approval     ApproveType
+	Price        int
+	Installments int
+	Time         time.Time
+	Shop         string
+	Cumulative   int
 }
 
 func (p PaymentInfo) ToString() string {
 	return fmt.Sprintf("[Id]%s, [Approval]%s, [Price]%d, [Installments]%d, [Time]%s, [Shop]%s, [Cumulative]%d",
-		p.id, p.approval, p.price, p.installments, p.time.Format(time.RFC822), p.shop, p.cumulative)
+		p.Id, p.Approval, p.Price, p.Installments, p.Time.Format(time.RFC822), p.Shop, p.Cumulative)
 }
 
 func Parse(sms string) PaymentInfo {
@@ -46,7 +48,7 @@ func parseIdentifier(sms string) string {
 	return regexp.MustCompile(`\[Web발신].(.*?)\s*(승인|취소)`).FindStringSubmatch(sms)[1]
 }
 
-func parseApproval(sms string) Approval {
+func parseApproval(sms string) ApproveType {
 	for _, t := range approvalArray {
 		if strings.Contains(sms, string(t)) {
 			return t
@@ -96,8 +98,8 @@ func parseTimestamp(sms string) time.Time {
 	}
 	timeString := regexp.MustCompile(`\d{2}:\d{2}`).FindString(sms)
 	if timeString == "" {
-		panic("Can not parse time : " + sms)	
-	}		
+		panic("Can not parse time : " + sms)
+	}
 	currentTime := fmt.Sprintf("%d-%sT%s:00+09:00", time.Now().Local().Year(), strings.ReplaceAll(dateString, "/", "-"), timeString)
 	t, e := time.Parse(time.RFC3339, currentTime)
 	if e != nil {
@@ -112,7 +114,7 @@ func parseShop(sms string) string {
 	if strings.Contains(shopstr, "누적") {
 		size = strings.Index(shopstr, "누적")
 	}
-	shop:= strings.TrimSpace(shopstr[4:size])
+	shop := strings.TrimSpace(shopstr[4:size])
 	if shop == "" {
 		panic("Can not parse shop : " + sms)
 	}
